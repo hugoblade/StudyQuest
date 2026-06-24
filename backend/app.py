@@ -54,5 +54,16 @@ def studyplan():
 def health():
     return jsonify({'status': 'StudyQuest AI is running!'})
 
+# In app.py, update the /quiz route:
+@app.route('/quiz', methods=['POST'])
+def quiz():
+    data = request.get_json()
+    course = data.get('course', 'Database Systems')
+    topic = data.get('topic', 'SQL')
+    difficulty = data.get('difficulty', 'medium')  # Add this line
+    
+    result = ai.generate_quiz_question(course, topic, difficulty)
+    return jsonify(result)
+    
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
