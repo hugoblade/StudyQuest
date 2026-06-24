@@ -4,10 +4,112 @@ import { addXP } from '../firebase/firestore';
 import { useAuth } from '../context/AuthContext';
 import { generateQuizQuestion } from '../utils/aiService';
 
+// ================================
+// 📚 COURSE & TOPIC CONFIGURATION
+// Add or remove courses and topics here!
+// ================================
+const COURSE_TOPICS = {
+  'Database Systems': [
+    'SQL Joins',
+    'Normalization',
+    'ER Diagrams',
+    'Transactions & ACID',
+    'Indexing',
+    'Subqueries'
+  ],
+  'Data Structures and Algorithms': [
+    'Arrays & Linked Lists',
+    'Stacks & Queues',
+    'Trees & Binary Trees',
+    'Graphs',
+    'Sorting Algorithms',
+    'Searching Algorithms',
+    'Big O Notation'
+  ],
+  'Multimedia Technologies': [
+    'Audio Compression',
+    'Video Codecs',
+    'Image Formats (JPEG, PNG)',
+    'Streaming Protocols',
+    'Digital Signal Processing'
+  ],
+  'Software Engineering': [
+    'SDLC Models',
+    'Agile & Scrum',
+    'UML Diagrams',
+    'Design Patterns',
+    'Software Testing',
+    'Requirements Gathering',
+    'Version Control (Git)'
+  ],
+  'Cyber Security': [
+    'Network Security',
+    'Cryptography',
+    'Authentication & Authorization',
+    'Security Protocols (SSL/TLS)',
+    'Threat Modeling',
+    'Malware Analysis',
+    'Security Best Practices'
+  ],
+  'Networking': [
+    'OSI Model',
+    'TCP/IP Protocol Suite',
+    'Routing & Switching',
+    'IP Addressing & Subnetting',
+    'DNS & DHCP',
+    'Network Topologies',
+    'Firewalls & NAT'
+  ],
+  'Ethical Hacking': [
+    'Penetration Testing',
+    'Vulnerability Assessment',
+    'Social Engineering',
+    'Web Application Security',
+    'Network Scanning',
+    'Wireless Security',
+    'Reverse Engineering'
+  ],
+  'Cloud Computing': [
+    'Cloud Service Models (IaaS, PaaS, SaaS)',
+    'AWS Services',
+    'Azure Fundamentals',
+    'Cloud Security',
+    'Virtualization',
+    'Serverless Architecture'
+  ],
+  // ================================
+  // 🆕 NEW COURSES ADDED HERE
+  // ================================
+  'Artificial Intelligence': [
+    'Machine Learning Basics',
+    'Neural Networks',
+    'Natural Language Processing',
+    'Computer Vision',
+    'Reinforcement Learning'
+  ],
+  'DevOps': [
+    'CI/CD Pipelines',
+    'Docker & Containers',
+    'Kubernetes',
+    'Infrastructure as Code',
+    'Monitoring & Logging'
+  ],
+  'Mobile Development': [
+    'Android Basics',
+    'iOS Development',
+    'React Native',
+    'Flutter',
+    'Mobile UI/UX'
+  ]
+};
+
+// ================================
+// 📝 SAMPLE QUESTIONS (fallback)
+// ================================
 const sampleQuestions = [
   {
     question: 'What is React?',
-    options: ['A library for UI', 'B framework', 'C language', 'D database'],
+    options: ['A library for UI', 'A framework', 'A language', 'A database'],
     correct: 'A library for UI'
   },
   {
@@ -20,34 +122,39 @@ const sampleQuestions = [
 const Quiz = () => {
   const { currentUser } = useAuth();
 
-  // Existing quiz-taking state
-  const [current, setCurrent]   = useState(0);
-  const [score, setScore]       = useState(0);
+  // Quiz state
+  const [current, setCurrent] = useState(0);
+  const [score, setScore] = useState(0);
   const [finished, setFinished] = useState(false);
-
-  // Question source — starts with the static sample list,
-  // can be replaced by an AI-generated set
   const [questions, setQuestions] = useState(sampleQuestions);
 
   // AI generation state
   const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
+  const [error, setError] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('Database Systems');
+  const [selectedTopic, setSelectedTopic] = useState('SQL Joins');
 
   // ================================
-  // Generate a fresh AI question and
-  // restart the quiz using just that one
+  // Helper: Get topics for selected course
+  // ================================
+  const getTopicsForCourse = (course) => {
+    return COURSE_TOPICS[course] || ['General'];
+  };
+
+  // ================================
+  // Generate an AI question
   // ================================
   const loadAIQuestion = async () => {
     setLoading(true);
     setError('');
 
-    const result = await generateQuizQuestion(selectedCourse, 'general', 'medium');
+    const result = await generateQuizQuestion(
+      selectedCourse,
+      selectedTopic,
+      'medium'
+    );
 
     if (result.success) {
-      // AI returns { question, options, answer, explanation }
-      // Map it to the { question, options, correct } shape
-      // that QuizCard and handleAnswer already expect
       setQuestions([{
         question: result.question.question,
         options: result.question.options,
@@ -64,7 +171,7 @@ const Quiz = () => {
   };
 
   // ================================
-  // Reset back to the original static sample questions
+  // Reset to sample questions
   // ================================
   const resetToSampleQuestions = () => {
     setQuestions(sampleQuestions);
@@ -74,6 +181,9 @@ const Quiz = () => {
     setError('');
   };
 
+  // ================================
+  // Handle answer and XP
+  // ================================
   const handleAnswer = (isCorrect) => {
     const newScore = isCorrect ? score + 1 : score;
     if (isCorrect) setScore(newScore);
@@ -87,50 +197,81 @@ const Quiz = () => {
     }
   };
 
+  // ================================
+  // Render: Quiz Finished
+  // ================================
   if (finished) {
     return (
       <div className="quiz-summary">
-        <h2>Quiz Completed! 🎉</h2>
-        <p>Your score: {score} / {questions.length}</p>
-        <p>You earned {score * 10} XP</p>
-        <button onClick={resetToSampleQuestions}>Try Sample Questions</button>
-        <button onClick={loadAIQuestion} disabled={loading}>
-          {loading ? 'Generating...' : 'Try an AI Question'}
-        </button>
+        <h2>🎉 Quiz Completed!</h2>
+        <p>Score: {score} / {questions.length}</p>
+        <p>Earned {score * 10} XP</p>
+        <div className="quiz-actions">
+          <button onClick={resetToSampleQuestions}>📚 Sample Questions</button>
+          <button onClick={loadAIQuestion} disabled={loading}>
+            {loading ? '⏳ Generating...' : '✨ New AI Question'}
+          </button>
+        </div>
       </div>
     );
   }
 
+  // ================================
+  // Render: Quiz Active
+  // ================================
   return (
     <div className="quiz-page">
-
-      {/* AI question controls */}
+      {/* AI Controls */}
       <div className="quiz-ai-controls">
-        <select
-          value={selectedCourse}
-          onChange={(e) => setSelectedCourse(e.target.value)}
-          disabled={loading}
-        >
-          <option value="Database Systems">Database Systems</option>
-          <option value="Data Structures and Algorithms">Data Structures and Algorithms</option>
-          <option value="Multimedia Technologies">Multimedia Technologies</option>
-        </select>
+        <div className="control-group">
+          <label>Course:</label>
+          <select
+            value={selectedCourse}
+            onChange={(e) => {
+              const newCourse = e.target.value;
+              setSelectedCourse(newCourse);
+              const topics = getTopicsForCourse(newCourse);
+              setSelectedTopic(topics[0] || 'General');
+            }}
+            disabled={loading}
+          >
+            {Object.keys(COURSE_TOPICS).map(course => (
+              <option key={course} value={course}>{course}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="control-group">
+          <label>Topic:</label>
+          <select
+            value={selectedTopic}
+            onChange={(e) => setSelectedTopic(e.target.value)}
+            disabled={loading}
+          >
+            {getTopicsForCourse(selectedCourse).map(topic => (
+              <option key={topic} value={topic}>{topic}</option>
+            ))}
+          </select>
+        </div>
 
         <button onClick={loadAIQuestion} disabled={loading}>
-          {loading ? 'Generating...' : 'Generate AI Question ✨'}
+          {loading ? '⏳ Generating...' : '🚀 Generate AI Question'}
         </button>
       </div>
 
-      {error && <div className="quiz-error">{error}</div>}
+      {error && <div className="quiz-error">⚠️ {error}</div>}
 
-      <QuizCard
-        question={questions[current].question}
-        options={questions[current].options}
-        correct={questions[current].correct}
-        onAnswer={handleAnswer}
-        currentIndex={current}
-        total={questions.length}
-      />
+      {/* Quiz Card */}
+      {questions.length > 0 && (
+        <QuizCard
+          question={questions[current].question}
+          options={questions[current].options}
+          correct={questions[current].correct}
+          onAnswer={handleAnswer}
+          currentIndex={current}
+          total={questions.length}
+        />
+      )}
     </div>
   );
 };
