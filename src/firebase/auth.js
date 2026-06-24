@@ -1,8 +1,3 @@
-// ================================
-// STUDYQUEST - Firebase Auth
-// Login, Register, Logout functions
-// ================================
-
 import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
@@ -10,32 +5,21 @@ import {
     updateProfile,
     sendPasswordResetEmail
 } from "firebase/auth";
-
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "./config";
 
 // ================================
-// REGISTER NEW USER
+// REGISTER
 // ================================
 export const registerUser = async (name, email, password) => {
     try {
-        // Create user in Firebase Auth
-        const userCredential = await createUserWithEmailAndPassword(
-            auth,
-            email,
-            password
-        );
-
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
-
-        // Update display name
         await updateProfile(user, { displayName: name });
-
-        // Save user data to Firestore
         await setDoc(doc(db, "users", user.uid), {
             uid: user.uid,
-            name: name,
-            email: email,
+            name,
+            email,
             role: "student",
             xp: 0,
             level: 1,
@@ -44,42 +28,32 @@ export const registerUser = async (name, email, password) => {
             lastLogin: serverTimestamp(),
             createdAt: serverTimestamp()
         });
-
-        // Save to leaderboard
         await setDoc(doc(db, "leaderboard", user.uid), {
             uid: user.uid,
-            name: name,
+            name,
             xp: 0,
             level: 1
         });
-
         return { success: true, user };
-
     } catch (error) {
         return { success: false, error: error.message };
     }
 };
 
 // ================================
-// LOGIN EXISTING USER
+// LOGIN   <-- THIS IS WHAT YOU NEED
 // ================================
 export const loginUser = async (email, password) => {
     try {
-        const userCredential = await signInWithEmailAndPassword(
-            auth,
-            email,
-            password
-        );
-
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
         return { success: true, user: userCredential.user };
-
     } catch (error) {
         return { success: false, error: error.message };
     }
 };
 
 // ================================
-// LOGOUT USER
+// LOGOUT
 // ================================
 export const logoutUser = async () => {
     try {
@@ -91,13 +65,12 @@ export const logoutUser = async () => {
 };
 
 // ================================
-// GET USER DATA FROM FIRESTORE
+// GET USER DATA
 // ================================
 export const getUserData = async (uid) => {
     try {
         const docRef = doc(db, "users", uid);
         const docSnap = await getDoc(docRef);
-
         if (docSnap.exists()) {
             return { success: true, data: docSnap.data() };
         } else {
@@ -117,5 +90,22 @@ export const resetPassword = async (email) => {
         return { success: true };
     } catch (error) {
         return { success: false, error: error.message };
+    }
+};
+
+// ================================
+// REFRESH TOKEN (NEW)
+// ================================
+export const refreshToken = async () => {
+    const user = auth.currentUser;
+    if (!user) {
+        throw new Error("No user is logged in. Please log in again.");
+    }
+    try {
+        await user.getIdToken(true);
+        console.log("✅ Token refreshed!");
+        return { success: true };
+    } catch (error) {
+        throw new Error("Session expired. Please logout and login again.");
     }
 };
