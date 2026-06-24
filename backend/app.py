@@ -1,30 +1,14 @@
 # backend/app.py
-# StudyQuest AI Backend - Flask Server
+# Flask server that wraps your AI functions
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import anthropic
-import os
-import json
-from dotenv import load_dotenv
-
-# Load API Key
-load_dotenv()
-client = anthropic.Anthropic(api_key=os.getenv('CLAUDE_API_KEY'))
-MODEL_NAME = 'claude-3-5-sonnet-20241022'  # FIXED model name
+import studyquest_ai as ai  # Import your existing functions
 
 app = Flask(__name__)
 
-# IMPORTANT: Allow your Firebase frontend to call this API
+# Allow your Firebase frontend to call this API
 CORS(app, origins=["https://your-project-id.web.app", "http://localhost:3000"])
-
-SYSTEM_PROMPT = '''
-You are StudyBot, an AI study assistant for StudyQuest.
-Help BSE students with Database Systems, SQL, Data Structures (C++), 
-Multimedia Technologies, and Software Engineering.
-Keep explanations simple, give practical examples, and guide students to think.
-Never give direct assignment answers.
-'''
 
 # ---------- ROUTE 1: Chat ----------
 @app.route('/ask', methods=['POST'])
@@ -32,22 +16,9 @@ def ask():
     data = request.get_json()
     user_message = data.get('message', '')
     history = data.get('history', [])
-
-    messages = history + [{'role': 'user', 'content': user_message}]
-    try:
-        response = client.messages.create(
-            model=MODEL_NAME,
-            max_tokens=1024,
-            system=SYSTEM_PROMPT,
-            messages=messages
-        )
-        return jsonify({
-            'success': True,
-            'message': response.content[0].text,
-            'tokens_used': response.usage.output_tokens
-        })
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+    
+    result = ai.ask_study_bot(user_message, history)
+    return jsonify(result)
 
 # ---------- ROUTE 2: Quiz ----------
 @app.route('/quiz', methods=['POST'])
@@ -56,17 +27,32 @@ def quiz():
     course = data.get('course', 'Database Systems')
     topic = data.get('topic', 'SQL')
     difficulty = data.get('difficulty', 'medium')
+    
+    result = ai.generate_quiz_question(course, topic, difficulty)
+    return jsonify(result)
 
-    prompt = f'Generate a {difficulty} multiple choice question for {course} - {topic}... (keep your existing prompt logic here)'
-    # Shortened for brevity in this reply, but you can copy your existing function logic here.
+# ---------- ROUTE 3: Recommendation ----------
+@app.route('/recommend', methods=['POST'])
+def recommend():
+    data = request.get_json()
+    student = data.get('student', {})
+    result = ai.get_study_recommendation(student)
+    return jsonify(result)
 
-    return jsonify({'success': True, 'question': 'Example'})
-
-# ---------- ROUTE 3: Study Plan ----------
+# ---------- ROUTE 4: Study Plan ----------
 @app.route('/studyplan', methods=['POST'])
-def study_plan():
-    # Add your logic here
-    return jsonify({'success': True, 'plan': 'Your plan here'})
+def studyplan():
+    data = request.get_json()
+    name = data.get('name', 'Student')
+    weeks = data.get('weeks', 4)
+    subjects = data.get('subjects', [])
+    result = ai.generate_study_plan(name, weeks, subjects)
+    return jsonify(result)
+
+# ---------- Health check (for Render) ----------
+@app.route('/')
+def health():
+    return jsonify({'status': 'StudyQuest AI is running!'})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
