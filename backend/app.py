@@ -8,7 +8,11 @@ import studyquest_ai as ai  # Import your existing functions
 app = Flask(__name__)
 
 # Allow your Firebase frontend to call this API
-CORS(app, origins=["https://your-project-id.web.app", "http://localhost:3000"])
+CORS(app, origins=[
+    "http://localhost:3000",
+    "https://studyquest-42ead.web.app",
+    "https://studyquest-42ead.firebaseapp.com"
+])
 
 # ---------- ROUTE 1: Chat ----------
 @app.route('/ask', methods=['POST'])
