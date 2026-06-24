@@ -3,11 +3,10 @@
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import studyquest_ai as ai  # Import your existing functions
 
 app = Flask(__name__)
 
-# Allow your Firebase frontend to call this API
+# ✅ CORRECT CORS configuration
 CORS(app, origins=[
     "http://localhost:3000",
     "https://studyquest-42ead.web.app",
