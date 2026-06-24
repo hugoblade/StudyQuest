@@ -44,7 +44,7 @@ client = anthropic.Anthropic(
 # Which Claude model to use for all requests below.
 # Defined once here so you only need to update it in one place
 # when a newer model is available.
-MODEL_NAME = 'claude-3-5-sonnet-20241022'
+MODEL_NAME = 'claude-3-7-sonnet-20250219'
 
 # ================================================
 # SYSTEM PROMPT
